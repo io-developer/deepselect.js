@@ -16,16 +16,23 @@ deepselect.cssClasses = {
 	"main": "deepselect"
 	, "node": "deepselect-node"
 	, "nodeContainer": "deepselect-node-container"
+	, "nodeOption": "deepselect-node-option"
 };
 
 deepselect.create = function( options ) {
 
 	var dataProvider = options.dataProvider || new deepselect.DataProvider(options.data);
 	
-	var root = document.createElement("div");
-	root.className = deepselect.cssClasses["main"];
+	var cssClasses = [];
+	var userCssClasses = options.cssClasses || [];
+	for (var k in deepselect.cssClasses) {
+		cssClasses[k] = userCssClasses[k] || deepselect.cssClasses[k];
+	}
 	
-	var renderer = new deepselect.Renderer(root, options.enableLabels, options.defaultLabel);
+	var root = document.createElement("div");
+	root.className = cssClasses["main"];
+	
+	var renderer = new deepselect.Renderer(root, cssClasses, options.enableLabels, options.label, options.labelSelectable, options.labelValue);
 	var controller = new deepselect.Controller(dataProvider, root, renderer);
 	
 	root.isCompleted = controller.isCompleted;
@@ -60,7 +67,7 @@ deepselect.Controller = function( dataProvider, dispatcher, renderer ) {
 	var currentIndexes = [];
 	var currentItems = [];
 	var currentValues = [];
-	var selecrCounter = 0;
+	var selectCounter = 0;
 	
 	that.isCompleted = function() {
 		return completed;
@@ -102,10 +109,13 @@ deepselect.Controller = function( dataProvider, dispatcher, renderer ) {
 	
 	that.handleSelectAt = function( indexes ) {
 		indexes = indexes || [];
+		
+		var lastIndex = indexes[indexes.length - 1];
 		var items = dataProvider.getItemsAt(indexes);
-		if (!items) {
+		if (!items && lastIndex >= 0) {
 			return;
 		}
+		
 		var i = -1;
 		var l = Math.min(indexes.length, currentIndexes.length);
 		while (++i < l && indexes[i] == currentIndexes[i]) {}
@@ -128,13 +138,13 @@ deepselect.Controller = function( dataProvider, dispatcher, renderer ) {
 			lastItemsNode = renderItems(currentIndexes.concat());
 		}
 		
-		++selecrCounter;
-		if (!renderer.isEnableLabels()) {
-			arguments.callee(indexes.concat(0));
+		++selectCounter;
+		if (lastItemsNode) {
+			arguments.callee(indexes.concat(renderer.isEnableLabels() ? -1 : 0));
 		}
-		--selecrCounter;
+		--selectCounter;
 		
-		if (selecrCounter == 0) {
+		if (selectCounter == 0) {
 			completed = !lastItemsNode;
 			dispatchSelect();
 			if (completed) {
@@ -146,12 +156,13 @@ deepselect.Controller = function( dataProvider, dispatcher, renderer ) {
 	function updateCurrents() {
 		currentItems = [];
 		currentValues = [];
+		var realVals = renderer.getValues();
 		var i = -1;
 		var l = currentIndexes.length;
 		while (++i < l) {
 			var item = dataProvider.getItemAt(currentIndexes.slice(0, i + 1));
 			currentItems.push(item);
-			currentValues.push(item.value);
+			currentValues.push(item ? item.value : realVals[i]);
 		}
 	}
 	
@@ -217,20 +228,31 @@ deepselect.Controller = function( dataProvider, dispatcher, renderer ) {
 	that.handleSelectAt();
 };
 
-deepselect.Renderer = function( root, enableLabels, defaultLabel ) {
+deepselect.Renderer = function( root, cssClasses, enableLabels, label, labelSelectable, labelValue ) {
 	var that = this;
 	
 	var renderedNodes = [];
 	var renderedContainers = [];
 	
-	defaultLabel = defaultLabel || "Choose...";
+	cssClasses = cssClasses || deepselect.cssClasses;
+	label = label || "Choose...";
+	labelValue = labelValue || "";
 	
 	that.isEnableLabels = function() {
 		return enableLabels;
 	};
 	
-	that.getDefaultLabel = function() {
-		return defaultLabel;
+	that.getValues = function() {
+		var vals = [];
+		var i = -1;
+		var l = renderedNodes.length;
+		while (++i < l) {
+			var node = renderedNodes[i];
+			if (node) {
+				vals.push(node.value);
+			}
+		}
+		return vals;
 	};
 	
 	that.setSelectedIndexes = function( indexes ) {
@@ -259,10 +281,14 @@ deepselect.Renderer = function( root, enableLabels, defaultLabel ) {
 		var l = items.length;
 		if (l > 0) {
 			node = document.createElement("select");
-			node.className = deepselect.cssClasses["node"];
+			node.className = cssClasses["node"];
 			if (enableLabels) {
-				var label = data.label || defaultLabel;
-				node.appendChild(that.renderNodeItem({ name: label, disabled: 1, selected: 1 }));
+				var t = {};
+				t.name = data.label || label;
+				t.value = data.labelValue !== undefined ? data.labelValue : labelValue;
+				t.selected = true;
+				t.disabled = !(data.labelSelectable !== undefined ? data.labelSelectable : labelSelectable);
+				node.appendChild(that.renderNodeItem(t));
 			}
 			var i = -1;
 			while (++i < l) {
@@ -278,7 +304,7 @@ deepselect.Renderer = function( root, enableLabels, defaultLabel ) {
 	
 	that.renderNodeContainer = function( node ) {
 		el = document.createElement("div");
-		el.className = deepselect.cssClasses["nodeContainer"];
+		el.className = cssClasses["nodeContainer"];
 		el.appendChild(node);
 		return el;
 	};
@@ -286,8 +312,9 @@ deepselect.Renderer = function( root, enableLabels, defaultLabel ) {
 	that.renderNodeItem = function( data ) {
 		var txt = document.createTextNode(data.name);
 		var elem = document.createElement("option");
+		elem.className = cssClasses["nodeOption"];
 		elem.appendChild(txt);
-		elem.setAttribute("value", data.value || "");
+		elem.setAttribute("value", (data.value !== undefined ? data.value : ""));
 		if (data.disabled) {
 			elem.setAttribute("disabled", "disabled");
 		}
