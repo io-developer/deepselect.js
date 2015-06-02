@@ -1,5 +1,9 @@
 /**
- * repo: https://github.com/io-developer/deepselect.js
+ * Configurable deep selects
+ * Not requires jQuery or other libs
+ * @author Sergey Sedyshev
+ * @repo https://github.com/io-developer/deepselect.js 
+ * @see find more on github https://github.com/io-developer
  */
  
 var deepselect = function( options ) {
@@ -185,7 +189,7 @@ deepselect.Controller = function( dataProvider, dispatcher, renderer ) {
 	
 	function createEvent( name ) {
 		var e;
-		if (isIE) {
+		if (document.createEvent) {
 			e = document.createEvent("Event");
 			e.initEvent(name, true, false);
 		} else {
@@ -195,13 +199,7 @@ deepselect.Controller = function( dataProvider, dispatcher, renderer ) {
 	}
 	
 	function dispatch( name ) {
-		var e;
-		if (isIE) {
-			e = document.createEvent("Event");
-			e.initEvent(name, true, false);
-		} else {
-			e = new Event(name);
-		}
+		var e = createEvent(name);
 		
 		e.selectedIndexes = currentIndexes.concat();
 		e.selectedItems = currentItems.concat();
