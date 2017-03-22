@@ -2,11 +2,10 @@
 Pure javascript library for easy handling continous option subselecting
 
 ## Requirements
-PHP >= 5.4
-- gd
+ECMAScript >= 5
 
 
-## Usage
+## Example
 
 ```html
 <!DOCTYPE HTML>
