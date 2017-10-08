@@ -2,7 +2,7 @@
  * Configurable deep selects
  * Not requires jQuery or other libs
  * @author Sergey Sedyshev
- * @repo https://github.com/io-developer/deepselect.js 
+ * @repo https://github.com/io-developer/js-deepselect
  * @see find more on github https://github.com/io-developer
  */
  
